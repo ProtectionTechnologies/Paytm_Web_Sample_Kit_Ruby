@@ -157,6 +157,8 @@ module EncryptionNewPG
     check_sum = check_sum + salt
     ### encrypting checksum ###
     check_sum = new_pg_encrypt_variable(check_sum, key)
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
     return check_sum
   end
   
@@ -177,6 +179,8 @@ module EncryptionNewPG
     check_sum = check_sum + salt
     ### encrypting checksum ###
     check_sum = new_pg_encrypt_variable(check_sum, key)
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
     return check_sum
   end
 
@@ -216,6 +220,8 @@ module EncryptionNewPG
     check_sum = check_sum + salt
     ### encrypting checksum ###
     check_sum = new_pg_encrypt_variable(check_sum, key)
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
     return check_sum
   end
   
@@ -235,6 +241,10 @@ module EncryptionNewPG
       return false
     end
     generated_check_sum = nil
+
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
+
     check_sum = new_pg_decrypt_variable(check_sum, key)
     if check_sum == false
       return false
@@ -270,6 +280,10 @@ module EncryptionNewPG
       return false
     end
     generated_check_sum = nil
+
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
+    
     check_sum = new_pg_decrypt_variable(check_sum, key)
     if check_sum == false
       return false

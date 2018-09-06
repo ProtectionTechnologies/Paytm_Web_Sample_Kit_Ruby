@@ -23,7 +23,7 @@ module EncryptionNewPG
     encrypted_data = Hash[]
     key = paytmparams.delete(:key)
     keys = paytmparams.keys
-    ##aes = OpenSSL::Cipher::Cipher.new("aes-128-cbc")
+    ###aes = OpenSSL::Cipher::Cipher.new("aes-128-cbc")
     aes = OpenSSL::Cipher::AES.new('128-CBC')
     begin
       keys.each do |k|
@@ -157,6 +157,30 @@ module EncryptionNewPG
     check_sum = check_sum + salt
     ### encrypting checksum ###
     check_sum = new_pg_encrypt_variable(check_sum, key)
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
+    return check_sum
+  end
+  
+  ### function returns checksum of given String ###
+  ### accepts a hash with String ###
+  ### calculates sha256 checksum of given values ###
+  def new_pg_checksum_by_String(strdata, key, salt_length = 4)
+    if strdata.empty?
+      return false
+    end
+    if key.empty?
+      return false
+    end
+    salt = new_pg_generate_salt(salt_length)
+    str = nil
+    str = strdata + '|' + salt
+    check_sum = Digest::SHA256.hexdigest(str)
+    check_sum = check_sum + salt
+    ### encrypting checksum ###
+    check_sum = new_pg_encrypt_variable(check_sum, key)
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
     return check_sum
   end
 
@@ -196,7 +220,48 @@ module EncryptionNewPG
     check_sum = check_sum + salt
     ### encrypting checksum ###
     check_sum = new_pg_encrypt_variable(check_sum, key)
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
     return check_sum
+  end
+  
+  ### function returns checksum of given key value pairs (must contain the :checksum key) ###
+  ### accepts a hash with key value pairs ###
+  ### calculates sha256 checksum of given values ###
+  ### returns true if checksum is consistent ###
+  ### returns false in case of inconsistency ###
+  def new_pg_verify_checksum_by_String(strdata, check_sum, key, salt_length = 4)
+    if strdata.empty?
+      return false
+    end
+    if key.empty?
+      return false
+    end
+    if check_sum.nil? || check_sum.empty?
+      return false
+    end
+    generated_check_sum = nil
+
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
+
+    check_sum = new_pg_decrypt_variable(check_sum, key)
+    if check_sum == false
+      return false
+    end
+    begin
+      salt = check_sum[(check_sum.length-salt_length), (check_sum.length)]
+      str = strdata + '|' + salt
+      generated_check_sum = Digest::SHA256.hexdigest(str)
+      generated_check_sum = generated_check_sum + salt
+    rescue Exception => e
+      return false
+    end
+    if check_sum == generated_check_sum
+      return true
+    else
+      return false
+    end
   end
 
   ### function returns checksum of given key value pairs (must contain the :checksum key) ###
@@ -215,6 +280,10 @@ module EncryptionNewPG
       return false
     end
     generated_check_sum = nil
+
+    check_sum = check_sum.gsub("\r\n",'')
+    check_sum = check_sum.gsub("\n",'')
+    
     check_sum = new_pg_decrypt_variable(check_sum, key)
     if check_sum == false
       return false
