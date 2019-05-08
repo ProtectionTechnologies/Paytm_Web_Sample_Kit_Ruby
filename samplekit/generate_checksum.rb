@@ -1,46 +1,43 @@
-#!C:\Ruby21-x64\bin\ruby.exe
-require './paytm/encryption_new_pg.rb'
+#!/usr/bin/ruby
+require '../checksum/encryption_new_pg.rb'
 require 'cgi'
-require 'uri'
-cgi = CGI.new
-params = cgi.params
 include EncryptionNewPG
+cgi = CGI.new
   
-PAYTM_MERCHANT_KEY = ""
-WEBSITE = ""
-MID = ""
-INDUSTRY_TYPE_ID = ""
-CHANNEL_ID = ""
+MERCHANT_ID = "xxxxxxxxxxxxxxxxxxxx"
+MERCHANT_KEY = "xxxxxxxxxxxxxxxx"
+WEBSITE = "xxxxxxxxxx"
+CHANNEL_ID = "xxx"
+INDUSTRY_TYPE_ID = "xxxxxx"
 
-paramList = Hash.new
+ORDER_ID = cgi["ORDER_ID"]
+CUST_ID = cgi["CUST_ID"]
+TXN_AMOUNT = cgi["TXN_AMOUNT"]
+MOBILE_NO = cgi["MOBILE_NO"]
+EMAIL = cgi["EMAIL"]
 
-ORDER_ID = params["ORDER_ID"]
-CUST_ID = params["CUST_ID"]
-TXN_AMOUNT = params["TXN_AMOUNT"]
-MOBILE_NO = params["MOBILE_NO"]
-EMAIL = params["EMAIL"]
+paytmParams = Hash.new
+paytmParams["MID"] = MERCHANT_ID
+paytmParams["ORDER_ID"] = ORDER_ID
+paytmParams["CUST_ID"] = CUST_ID
+paytmParams["INDUSTRY_TYPE_ID"] = INDUSTRY_TYPE_ID
+paytmParams["CHANNEL_ID"] = CHANNEL_ID
+paytmParams["TXN_AMOUNT"] = TXN_AMOUNT
+paytmParams["MOBILE_NO"] = MOBILE_NO
+paytmParams["EMAIL"] = EMAIL
+paytmParams["WEBSITE"] = WEBSITE
+paytmParams["CALLBACK_URL"] = "http://localhost/cgi-bin/Paytm_Web_Sample_Kit_Ruby/samplekit/verify_checksum.rb"
 
-paramList["MID"] = MID
-paramList["ORDER_ID"] = ORDER_ID
-paramList["CUST_ID"] = CUST_ID
-paramList["INDUSTRY_TYPE_ID"] = INDUSTRY_TYPE_ID
-paramList["CHANNEL_ID"] = CHANNEL_ID
-paramList["TXN_AMOUNT"] = TXN_AMOUNT
-paramList["MSISDN"] = MOBILE_NO
-paramList["EMAIL"] = EMAIL
-paramList["WEBSITE"] = WEBSITE
+checksum = new_pg_checksum(paytmParams, MERCHANT_KEY)
 
-checksum_hash = new_pg_checksum(paramList, PAYTM_MERCHANT_KEY).gsub("\n",'')
+txn_url = "https://securegw-stage.paytm.in/order/process" # Staging URL
+# txn_url = "https://securegw.paytm.in/order/process" # Production URL
 
-#staging Url
-payment_url = "https://securegw-stage.paytm.in/theia/processTransaction";
-
-#live Url 
-#payment_url = "https://securegw.paytm.in/theia/processTransaction";
-
-puts "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html;charset=ISO-8859-I\"><title>Paytm</title></head><body><center><h2>Redirecting to Paytm </h2><br /><h1>Please do not refresh this page...</h1></center><form method=\"post\" action=\"#{payment_url}\" name=\"f1\">"
-keys = paramList.keys
-keys.each do |k|
-	puts "<input type=\"hidden\" name=\"#{k}\" value=\"#{paramList[k]}\">"
+form_fields = ""
+paytmParams.each do |key, value|
+	form_fields += "<input type=\"hidden\" name=\"#{key}\" value=\"#{value}\" />"
 end
-puts "<input type=\"hidden\" name=\"CHECKSUMHASH\" value=\"#{checksum_hash}\"></form><script type=\"text/javascript\">document.f1.submit();</script></body></html>"
+form_fields += "<input type=\"hidden\" name=\"CHECKSUMHASH\" value=\"#{checksum}\" />"
+
+puts "Content-type: text/html\n\n"
+puts "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html;charset=ISO-8859-I\"><title>Paytm</title></head><body><center><h2>Redirecting to Paytm </h2><br /><h1>Please do not refresh this page...</h1></center><form method=\"post\" action=\"#{txn_url}\" name=\"paytm_form\">#{form_fields}</form><script type=\"text/javascript\">document.paytm_form.submit();</script></body></html>"
